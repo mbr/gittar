@@ -6,6 +6,7 @@ import os
 import stat
 import time
 from urlparse import urlparse
+import sys
 
 from dateutil.tz import tzlocal
 from datetime import datetime
@@ -93,6 +94,8 @@ def main():
 
     for source_url in args.sources:
         src = SOURCES[source_url.scheme](source_url)
+        sys.stderr.write(source_url.geturl())
+        sys.stderr.write('\n')
 
         tree = Tree()
         for path, mode, blob in src:
@@ -101,6 +104,12 @@ def main():
 
             # tree entry
             tree.add(path, mode, blob.id)
+
+            sys.stderr.write(path)
+            sys.stderr.write('\n')
+
+        sys.stderr.write('\n')
+
 
         repo.object_store.add_object(tree)
 
