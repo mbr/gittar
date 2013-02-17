@@ -42,6 +42,8 @@ parser.add_argument('sources', nargs='+', type=gittar_url,
                     help='Sources to add.')
 parser.add_argument('-r', '--repo', default='.', help='The repository path '
                     'of the repo to use. Must be a filesystem path.')
+parser.add_argument('-b', '--branch', default=None, help='The branch to '
+                    'commit to.')
 parser.add_argument('--author', default=None)
 parser.add_argument('--author-time', default=now, type=int)
 parser.add_argument('--author-timezone', default=localtz, type=parse_timezone)
@@ -86,6 +88,8 @@ def main():
     # open repo
     repo = Repo(args.repo)
     config = repo.get_config_stack()
+    ref_name = 'refs/heads/%s' % args.branch
+    old_head = repo.refs[ref_name]
 
     for source_url in args.sources:
         src = SOURCES[source_url.scheme](source_url)
@@ -105,6 +109,8 @@ def main():
                                 config.get('user', 'email'))
 
         commit = Commit()
+        commit.parents = [old_head]
+
         commit.tree = tree.id
         commit.author = args.author or get_user()
         commit.committer = args.committer or get_user()
@@ -119,5 +125,8 @@ def main():
         commit.message = args.message or 'Automatic commit using gittar.'
 
         repo.object_store.add_object(commit)
+
+        # set ref
+        repo.refs.set_if_equals(ref_name, old_head, commit.id)
 
         print commit.id
