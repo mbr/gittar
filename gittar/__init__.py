@@ -158,7 +158,8 @@ def main():
     repo = Repo(args.repo)
     config = repo.get_config_stack()
     ref_name = 'refs/heads/%s' % args.branch
-    old_head = repo.refs[ref_name]
+
+    old_head = repo.refs[ref_name] if ref_name in repo.refs else None
 
     for source_url in args.sources:
         src = SOURCES[source_url.scheme](source_url)
@@ -186,7 +187,9 @@ def main():
                                 config.get('user', 'email'))
 
         commit = Commit()
-        commit.parents = [old_head]
+
+        if old_head:
+            commit.parents = [old_head]
 
         commit.tree = tree.id
         commit.author = args.author or get_user()
@@ -204,6 +207,9 @@ def main():
         repo.object_store.add_object(commit)
 
         # set ref
-        repo.refs.set_if_equals(ref_name, old_head, commit.id)
+        if old_head:
+            repo.refs.set_if_equals(ref_name, old_head, commit.id)
+        else:
+            repo.refs.add_if_new(ref_name, commit.id)
 
         print commit.id
