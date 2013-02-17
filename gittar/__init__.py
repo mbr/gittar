@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import argparse
+from collections import OrderedDict
 import time
 from urlparse import urlparse
 import sys
@@ -12,7 +13,7 @@ from datetime import datetime
 from dulwich.repo import Repo
 from dulwich.objects import Tree, Commit, parse_timezone
 
-from sources import SOURCES
+from sources import SOURCES, MODE_TREE
 
 
 def gittar_url(s):
@@ -87,21 +88,38 @@ def main():
         sys.stderr.write(source_url.geturl())
         sys.stderr.write('\n')
 
-        tree = Tree()
+        root = OrderedDict()
         for path, mode, blob in src:
             # add the blob
             repo.object_store.add_object(blob)
 
             # tree entry
-            tree.add(path, mode, blob.id)
+            node = root
+            components = path.split('/')
+            for c in components[:-1]:
+                node = root.setdefault(c, OrderedDict())
+
+            node[components[-1]] = (mode, blob.id)
 
             sys.stderr.write(path)
             sys.stderr.write('\n')
 
         sys.stderr.write('\n')
 
+        # collect trees
+        def store_tree(node):
+            tree = Tree()
 
-        repo.object_store.add_object(tree)
+            for name in node:
+                if isinstance(node[name], dict):
+                    tree.add(name, MODE_TREE, store_tree(node[name]).id)
+                else:
+                    tree.add(name, *node[name])
+
+            repo.object_store.add_object(tree)
+            return tree
+
+        tree = store_tree(root)
 
         def get_user():
             return '%s <%s>' % (config.get('user', 'name'),
