@@ -65,9 +65,11 @@ parser.add_argument('--commit-time', default=now, type=int, help='Committer '
                     'time.')
 parser.add_argument('--commit-timezone', default=localtz, type=parse_timezone,
                     help='Author timezone. Defaults to local timezone.')
-parser.add_argument('-m', '--message', help='Commit message, utf-8 encoded. '
+parser.add_argument('-m', '--message', help='Commit message. '
                     'If no message is given, one will be auto-generated.',
                     default='Automatic commmit using gittar.')
+parser.add_argument('--encoding', default='UTF-8', help='Encoding for the '
+                    'commit. Defaults to UTF-8.')
 
 
 def main():
@@ -120,7 +122,7 @@ def main():
         commit.commit_timezone = args.commit_timezone[0]
         commit.author_timezone = args.author_timezone[0]
 
-        commit.encoding = 'UTF-8'
+        commit.encoding = args.encoding
         commit.message = args.message
 
         repo.object_store.add_object(commit)
