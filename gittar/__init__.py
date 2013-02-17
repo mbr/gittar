@@ -2,9 +2,16 @@
 # -*- coding: utf-8 -*-
 
 import argparse
+
+try:
+    from cStringIO import StringIO
+except ImportError:
+    import StringIO
+
 from collections import OrderedDict
 import time
 from urlparse import urlparse
+import re
 import sys
 
 from dateutil.tz import tzlocal
@@ -15,14 +22,49 @@ from dulwich.objects import Tree, Commit, parse_timezone
 
 from sources import SOURCES, MODE_TREE
 
+VALID_KEY_RE = re.compile('^[a-zA-Z_][a-zA-Z0-9_]*$')
 
 def gittar_url(s):
-    r = urlparse(s)
+    args = []
+    kwargs = OrderedDict()
 
-    if not r.scheme in SOURCES:
-        raise ValueError('Schema %r not known' % r.scheme)
+    cur = StringIO()
+    key = None
 
-    return r
+    escaped = False
+    i = 0
+    while i <= len(s):
+        c = s[i] if i < len(s) else None
+
+        if escaped:
+            if c == None:
+                raise ValueError('Trailing \\')
+            cur.write(c)
+            escaped = False
+        elif c == '\\':
+            escaped = True
+            i += 1
+            continue
+        elif c == '=':
+            if key != None:
+                raise ValueError('Cannot have two \'=\' inside single field.')
+            else:
+                key = cur.getvalue()
+                cur = StringIO()
+        elif c in (':', None):
+            if key != None:
+                if not VALID_KEY_RE.match(key):
+                    raise ValueError('Bad variable name: %r' % key)
+
+                kwargs[key] = cur.getvalue()
+            else:
+                args.append(cur.getvalue())
+            cur = StringIO()
+        else:
+            cur.write(c)
+        i += 1
+
+    return s, args, kwargs
 
 
 def get_local_tz_offset(ltz, now):
@@ -39,9 +81,9 @@ localtz = get_local_tz_offset(tzlocal(), datetime.utcfromtimestamp(now))
 
 parser = argparse.ArgumentParser()
 parser.add_argument('sources', nargs='+', type=gittar_url,
-                    metavar='SCHEME://...', help='Sources to add. Valid '
+                    metavar='SCHEME:PATH:ARG...', help='Sources to add. Valid '
                     'schemes are %s' % ', '.join(
-                        '%s://' % s for s in sorted(SOURCES.keys())
+                        '%s:' % s for s in sorted(SOURCES.keys())
                     ))
 parser.add_argument('-r', '--repo', default='.', help='The repository path '
                     'of the repo where files will be stored. Must be a '
@@ -83,9 +125,11 @@ def main():
 
     old_head = repo.refs[ref_name] if ref_name in repo.refs else None
 
-    for source_url in args.sources:
-        src = SOURCES[source_url.scheme](source_url)
-        sys.stderr.write(source_url.geturl())
+    for orig, s_args, s_kwargs in args.sources:
+        scheme = s_args.pop(0)
+
+        src = SOURCES[scheme](*s_args, **s_kwargs)
+        sys.stderr.write(orig)
         sys.stderr.write('\n')
 
         root = OrderedDict()
