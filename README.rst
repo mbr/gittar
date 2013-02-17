@@ -22,7 +22,7 @@ files reside outside the ``myapp`` directory.
 
 Now, you can run::
 
-  gittar -b web file:///`pwd`/myapp
+  gittar -b web file:myapp
 
 This will create a new commit containing everything inside the ``myapp``
 directory. If the branch ``web`` does not exist, it will be created and will
