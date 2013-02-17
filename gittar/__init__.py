@@ -63,20 +63,47 @@ class Source(object):
         self.url = url
 
 
+def _is_executable(path):
+    mode = os.stat(path)[stat.ST_MODE]
+    return mode & stat.S_IXUSR or mode & stat.S_IXGRP or mode & stat.S_IXOTH
+
+
 class FilesystemSource(Source):
     scheme = 'file'
 
+    def _handle_file(self, relpath, abspath):
+        if os.path.isfile(abspath):
+            with open(abspath, 'rb') as f:
+                mode = stat.S_IFREG
+                mode |= self._exc_perm if _is_executable(abspath)\
+                                       else self._def_perm
+
+                # tutorial says we can use from_file here - possibly wrong?
+                return (relpath,
+                       mode,
+                       Blob.from_string(f.read()))
+        elif os.path.islink(abspath):
+            target = os.readlink(abspath)
+            return (relpath,
+                   stat.S_IFLNK,
+                   Blob.from_string(target))
+        else:
+            raise RuntimeError('Can\'t handle %s' % abspath)
+
     def __iter__(self):
         path = self.url.path
-        if os.path.isfile(path):
-            name = os.path.basename(path)
 
-            with open(path, 'rb') as f:
-                # tutorial says we can use from_file here - possibly wrong?
-                yield (name,
-                       stat.S_IFREG | self._def_perm,
-                       Blob.from_string(f.read()))
-
+        if os.path.isdir(path):
+            for dirpath, dns, fns in os.walk(path):
+                for fn in fns:
+                    jpath = os.path.join(dirpath, fn)
+                    relpath = os.path.relpath(jpath, path)
+                    abspath = os.path.abspath(jpath)
+                    yield self._handle_file(relpath, abspath)
+        else:
+            yield self._handle_file(
+                os.path.basename(path), os.path.abspath(path)
+            )
 
 
 for source_class in [FilesystemSource]:
