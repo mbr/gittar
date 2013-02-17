@@ -26,12 +26,14 @@ def _executable_bits(mode):
 
 
 class Source(object):
-    def __init__(self, url):
-        self.url = url
+    pass
 
 
 class FilesystemSource(Source):
     scheme = 'file'
+
+    def __init__(self, path):
+        self.path = os.expanduser(path)
 
     def _handle_file(self, relpath, abspath):
         if os.path.isfile(abspath):
@@ -49,7 +51,7 @@ class FilesystemSource(Source):
             raise RuntimeError('Can\'t handle %s' % abspath)
 
     def __iter__(self):
-        path = self.url.path
+        path = self.path
 
         if os.path.isdir(path):
             for dirpath, dns, fns in os.walk(path):
@@ -67,8 +69,11 @@ class FilesystemSource(Source):
 class ZipSource(Source):
     scheme = 'zip'
 
+    def __init__(self, zipfile):
+        self.zipfile = os.expanduser(zipfile)
+
     def __iter__(self):
-        with ZipFile(self.url.path) as archive:
+        with ZipFile(self.zipfile) as archive:
             for name in archive.namelist():
                 with archive.open(name) as f:
                     yield name, MODE_RFILE, Blob.from_string(f.read())
@@ -77,8 +82,11 @@ class ZipSource(Source):
 class TarSource(Source):
     scheme = 'tar'
 
+    def __init__(self, tarfile):
+        self.tarfile = os.expanduser(tarfile)
+
     def __iter__(self):
-        with tarfile.open(self.url.path) as archive:
+        with tarfile.open(self.tarfile) as archive:
             for info in archive.getmembers():
                 if info.isdir():
                     continue
@@ -93,7 +101,7 @@ class TarSource(Source):
                     buf = info.linkname
                 else:
                     raise RuntimeError('Can\'t handle %s in %s' % (
-                        info.name, self.url.geturl()
+                        info.name, self.tarfile
                     ))
 
                 yield info.name, mode, Blob.from_string(buf)
