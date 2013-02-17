@@ -26,7 +26,7 @@ VALID_KEY_RE = re.compile('^[a-zA-Z_][a-zA-Z0-9_]*$')
 
 def gittar_url(s):
     args = []
-    kwargs = OrderedDict()
+    kwargs = {}
 
     cur = StringIO()
     key = None
@@ -56,7 +56,7 @@ def gittar_url(s):
                 if not VALID_KEY_RE.match(key):
                     raise ValueError('Bad variable name: %r' % key)
 
-                kwargs[key] = cur.getvalue()
+                kwargs.setdefault(key, []).append(cur.getvalue())
             else:
                 args.append(cur.getvalue())
             cur = StringIO()

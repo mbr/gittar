@@ -33,7 +33,7 @@ class FilesystemSource(Source):
     scheme = 'file'
 
     def __init__(self, path):
-        self.path = os.expanduser(path)
+        self.path = os.path.expanduser(path)
 
     def _handle_file(self, relpath, abspath):
         if os.path.isfile(abspath):
@@ -70,7 +70,7 @@ class ZipSource(Source):
     scheme = 'zip'
 
     def __init__(self, zipfile):
-        self.zipfile = os.expanduser(zipfile)
+        self.zipfile = os.path.expanduser(zipfile)
 
     def __iter__(self):
         with ZipFile(self.zipfile) as archive:
@@ -83,7 +83,7 @@ class TarSource(Source):
     scheme = 'tar'
 
     def __init__(self, tarfile):
-        self.tarfile = os.expanduser(tarfile)
+        self.tarfile = os.path.expanduser(tarfile)
 
     def __iter__(self):
         with tarfile.open(self.tarfile) as archive:
