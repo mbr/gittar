@@ -2,21 +2,17 @@
 # -*- coding: utf-8 -*-
 
 import argparse
-import os
-import stat
 import time
 from urlparse import urlparse
 import sys
-import tarfile
-from zipfile import ZipFile
 
 from dateutil.tz import tzlocal
 from datetime import datetime
 
 from dulwich.repo import Repo
-from dulwich.objects import Blob, Tree, Commit, parse_timezone
+from dulwich.objects import Tree, Commit, parse_timezone
 
-SOURCES = {}
+from sources import SOURCES
 
 
 def gittar_url(s):
@@ -39,116 +35,39 @@ def get_local_tz_offset(ltz, now):
 
 now = int(time.time())
 localtz = get_local_tz_offset(tzlocal(), datetime.utcfromtimestamp(now))
+
 parser = argparse.ArgumentParser()
 parser.add_argument('sources', nargs='+', type=gittar_url,
-                    metavar='SCHEMA://SOURCE',
-                    help='Sources to add.')
-parser.add_argument('-r', '--repo', default='.', help='The repository path '
-                    'of the repo to use. Must be a filesystem path.')
-parser.add_argument('-b', '--branch', default=None, help='The branch to '
-                    'commit to.')
-parser.add_argument('--author', default=None)
-parser.add_argument('--author-time', default=now, type=int)
-parser.add_argument('--author-timezone', default=localtz, type=parse_timezone)
-parser.add_argument('--committer', default=None)
-parser.add_argument('--commit-time', default=now, type=int)
-parser.add_argument('--commit-timezone', default=localtz, type=parse_timezone)
-parser.add_argument('-m', '--message', help='Commit message (utf-8 encoded).',
-                    default=None)
-
-
-class Source(object):
-    _def_perm = stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IROTH
-    _exc_perm = _def_perm | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH
-
-    def __init__(self, url):
-        self.url = url
-
-
-def _is_executable(path):
-    mode = os.stat(path)[stat.ST_MODE]
-    return _executable_bits(mode)
-
-
-def _executable_bits(mode):
-    return mode & stat.S_IXUSR or mode & stat.S_IXGRP or mode & stat.S_IXOTH
-
-
-class FilesystemSource(Source):
-    scheme = 'file'
-
-    def _handle_file(self, relpath, abspath):
-        if os.path.isfile(abspath):
-            with open(abspath, 'rb') as f:
-                mode = stat.S_IFREG
-                mode |= self._exc_perm if _is_executable(abspath)\
-                                       else self._def_perm
-
-                # tutorial says we can use from_file here - possibly wrong?
-                return (relpath,
-                       mode,
-                       Blob.from_string(f.read()))
-        elif os.path.islink(abspath):
-            target = os.readlink(abspath)
-            return (relpath,
-                   stat.S_IFLNK,
-                   Blob.from_string(target))
-        else:
-            raise RuntimeError('Can\'t handle %s' % abspath)
-
-    def __iter__(self):
-        path = self.url.path
-
-        if os.path.isdir(path):
-            for dirpath, dns, fns in os.walk(path):
-                for fn in fns:
-                    jpath = os.path.join(dirpath, fn)
-                    relpath = os.path.relpath(jpath, path)
-                    abspath = os.path.abspath(jpath)
-                    yield self._handle_file(relpath, abspath)
-        else:
-            yield self._handle_file(
-                os.path.basename(path), os.path.abspath(path)
-            )
-
-
-class ZipSource(Source):
-    scheme = 'zip'
-
-    def __iter__(self):
-        with ZipFile(self.url.path) as archive:
-            for name in archive.namelist():
-                with archive.open(name) as f:
-                    yield name, self._def_perm, Blob.from_string(f.read())
-
-
-class TarSource(Source):
-    scheme = 'tar'
-
-    def __iter__(self):
-        with tarfile.open(self.url.path) as archive:
-            for info in archive.getmembers():
-                if info.isdir():
-                    continue
-                elif info.isfile() or info.islnk():
-                    target = info.name if info.isfile()\
-                                       else info.linkname
-                    mode = self._exc_perm if _executable_bits(info.mode)\
-                                          else self._def_perm
-                    buf = archive.extractfile(target).read()
-                elif info.issym():
-                    mode = stat.S_IFLNK
-                    buf = info.linkname
-                else:
-                    raise RuntimeError('Can\'t handle %s in %s' % (
-                        info.name, self.url.geturl()
+                    metavar='SCHEME://...', help='Sources to add. Valid '
+                    'schemes are %s' % ', '.join(
+                        '%s://' % s for s in sorted(SOURCES.keys())
                     ))
-
-                yield info.name, mode, Blob.from_string(buf)
-
-
-for source_class in [FilesystemSource, ZipSource, TarSource]:
-    SOURCES[source_class.scheme] = source_class
+parser.add_argument('-r', '--repo', default='.', help='The repository path '
+                    'of the repo where files will be stored. Must be a '
+                    'filesystem path.')
+parser.add_argument('-b', '--branch', default=None, help='If given, create '
+                    'branch with this name for commit. If the branch already '
+                    'exists, make it a parent of the new commit and update '
+                    'branch.')
+parser.add_argument('--author', default=None, help='Author string in the '
+                    'form of Author Name <author@email.invalid>. If not '
+                    'given, use git defaults.')
+parser.add_argument('--author-time', default=now, type=int, help='Author '
+                    'timestamp, as a UNIX timestamp. Defaults to current '
+                    'time.')
+parser.add_argument('--author-timezone', default=localtz, type=parse_timezone,
+                    help='Author timezone. Defaults to local timezone.')
+parser.add_argument('--committer', default=None, help='Committer string in '
+                    'the form of Committer Name <committer@email.invalid>. '
+                    'If not given, use git defaults.')
+parser.add_argument('--commit-time', default=now, type=int, help='Committer '
+                    'timestamp, as a UNIX timestamp. Defaults to current '
+                    'time.')
+parser.add_argument('--commit-timezone', default=localtz, type=parse_timezone,
+                    help='Author timezone. Defaults to local timezone.')
+parser.add_argument('-m', '--message', help='Commit message, utf-8 encoded. '
+                    'If no message is given, one will be auto-generated.',
+                    default='Automatic commmit using gittar.')
 
 
 def main():
@@ -202,7 +121,7 @@ def main():
         commit.author_timezone = args.author_timezone[0]
 
         commit.encoding = 'UTF-8'
-        commit.message = args.message or 'Automatic commit using gittar.'
+        commit.message = args.message
 
         repo.object_store.add_object(commit)
 
