@@ -35,12 +35,11 @@ class FilesystemSource(Source):
     def __init__(self, path):
         self.path = os.path.abspath(os.path.expanduser(path))
 
-        if os.path.isdir(self.path):
-            self.isdir = True
+        self.isdir = os.path.isdir(self.path)
 
     def get_blob(self, path):
         if not self.isdir:
-            abspath = self.abspath
+            abspath = os.path.abspath(self.path)
         else:
             abspath = os.path.join(os.path.dirname(self.path), path)
 
