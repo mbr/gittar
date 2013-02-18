@@ -167,7 +167,7 @@ def main():
             node = root
             components = path.split('/')
             for c in components[:-1]:
-                node = root.setdefault(c, OrderedDict())
+                node = node.setdefault(c, OrderedDict())
 
             node[components[-1]] = (mode, blob.id)
 
