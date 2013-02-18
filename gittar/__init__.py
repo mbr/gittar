@@ -38,7 +38,7 @@ def gittar_url(s):
 
         if escaped:
             if c == None:
-                raise ValueError('Trailing \\')
+                raise argparse.ArgumentTypeError('Trailing \\')
             cur.write(c)
             escaped = False
         elif c == '\\':
@@ -47,14 +47,18 @@ def gittar_url(s):
             continue
         elif c == '=':
             if key != None:
-                raise ValueError('Cannot have two \'=\' inside single field.')
+                raise argparse.ArgumentTypeError(
+                    'Cannot have two \'=\' inside single field.'
+                )
             else:
                 key = cur.getvalue()
                 cur = StringIO()
         elif c in (':', None):
             if key != None:
                 if not VALID_KEY_RE.match(key):
-                    raise ValueError('Bad variable name: %r' % key)
+                    raise argparse.ArgumentTypeError(
+                        'Bad variable name: %r' % key
+                    )
 
                 kwargs.setdefault(key, []).append(cur.getvalue())
             else:
