@@ -65,14 +65,16 @@ class FilesystemSource(Source):
 class ZipSource(Source):
     scheme = 'zip'
 
-    def __init__(self, zipfile):
-        self.zipfile = os.path.expanduser(zipfile)
+    def __init__(self, zipfn):
+        self.zipfn = os.path.expanduser(zipfn)
+        self.archive = ZipFile(self.zipfn)
 
     def __iter__(self):
-        with ZipFile(self.zipfile) as archive:
-            for name in archive.namelist():
-                with archive.open(name) as f:
-                    yield name, MODE_RFILE, Blob.from_string(f.read())
+        return iter(self.archive.namelist())
+
+    def get_blob(self, name):
+        with self.archive.open(name) as f:
+            return MODE_RFILE, Blob.from_string(f.read())
 
 
 class TarSource(Source):
