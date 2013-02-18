@@ -80,29 +80,33 @@ class ZipSource(Source):
 class TarSource(Source):
     scheme = 'tar'
 
-    def __init__(self, tarfile):
-        self.tarfile = os.path.expanduser(tarfile)
+    def __init__(self, tarfn):
+        self.tarfn = os.path.expanduser(tarfn)
+        self.archive = tarfile.open(self.tarfn)
 
     def __iter__(self):
-        with tarfile.open(self.tarfile) as archive:
-            for info in archive.getmembers():
-                if info.isdir():
-                    continue
-                elif info.isfile() or info.islnk():
-                    target = info.name if info.isfile()\
-                                       else info.linkname
-                    mode = MODE_XFILE if _executable_bits(info.mode)\
-                                          else MODE_RFILE
-                    buf = archive.extractfile(target).read()
-                elif info.issym():
-                    mode = MODE_LNK
-                    buf = info.linkname
-                else:
-                    raise RuntimeError('Can\'t handle %s in %s' % (
-                        info.name, self.tarfile
-                    ))
+        for info in self.archive.getmembers():
+            if info.isdir():
+                continue
+            yield info.name
 
-                yield info.name, mode, Blob.from_string(buf)
+    def get_blob(self, name):
+        info = self.archive.getmember(name)
+        if info.isfile() or info.islnk():
+            target = info.name if info.isfile()\
+                               else info.linkname
+            mode = MODE_XFILE if _executable_bits(info.mode)\
+                                  else MODE_RFILE
+            buf = self.archive.extractfile(target).read()
+        elif info.issym():
+            mode = MODE_LNK
+            buf = info.linkname
+        else:
+            raise RuntimeError('Can\'t handle %s in %s' % (
+                info.name, self.tarfile
+            ))
+
+        return mode, Blob.from_string(buf)
 
 
 SOURCES = {cls.scheme : cls for cls in locals().values()
