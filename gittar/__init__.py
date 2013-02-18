@@ -131,6 +131,7 @@ def main():
 
     old_head = repo.refs[ref_name] if ref_name in repo.refs else None
 
+    root = OrderedDict()
     for orig, s_args, s_kwargs in args.sources:
         scheme = s_args.pop(0)
 
@@ -149,7 +150,6 @@ def main():
         sys.stderr.write(orig)
         sys.stderr.write('\n')
 
-        root = OrderedDict()
         for path in src:
             # if includes are specified and none matches, skip
             if includes and not filter(lambda exp: exp.match(path), includes):
@@ -176,49 +176,49 @@ def main():
 
         sys.stderr.write('\n')
 
-        # collect trees
-        def store_tree(node):
-            tree = Tree()
+    # collect trees
+    def store_tree(node):
+        tree = Tree()
 
-            for name in node:
-                if isinstance(node[name], dict):
-                    tree.add(name, MODE_TREE, store_tree(node[name]).id)
-                else:
-                    tree.add(name, *node[name])
+        for name in node:
+            if isinstance(node[name], dict):
+                tree.add(name, MODE_TREE, store_tree(node[name]).id)
+            else:
+                tree.add(name, *node[name])
 
-            repo.object_store.add_object(tree)
-            return tree
+        repo.object_store.add_object(tree)
+        return tree
 
-        tree = store_tree(root)
+    tree = store_tree(root)
 
-        def get_user():
-            return '%s <%s>' % (config.get('user', 'name'),
-                                config.get('user', 'email'))
+    def get_user():
+        return '%s <%s>' % (config.get('user', 'name'),
+                            config.get('user', 'email'))
 
-        commit = Commit()
+    commit = Commit()
 
-        if old_head:
-            commit.parents = [old_head]
+    if old_head:
+        commit.parents = [old_head]
 
-        commit.tree = tree.id
-        commit.author = args.author or get_user()
-        commit.committer = args.committer or get_user()
+    commit.tree = tree.id
+    commit.author = args.author or get_user()
+    commit.committer = args.committer or get_user()
 
-        commit.commit_time = args.commit_time
-        commit.author_time = args.author_time
+    commit.commit_time = args.commit_time
+    commit.author_time = args.author_time
 
-        commit.commit_timezone = args.commit_timezone[0]
-        commit.author_timezone = args.author_timezone[0]
+    commit.commit_timezone = args.commit_timezone[0]
+    commit.author_timezone = args.author_timezone[0]
 
-        commit.encoding = args.encoding
-        commit.message = args.message
+    commit.encoding = args.encoding
+    commit.message = args.message
 
-        repo.object_store.add_object(commit)
+    repo.object_store.add_object(commit)
 
-        # set ref
-        if old_head:
-            repo.refs.set_if_equals(ref_name, old_head, commit.id)
-        else:
-            repo.refs.add_if_new(ref_name, commit.id)
+    # set ref
+    if old_head:
+        repo.refs.set_if_equals(ref_name, old_head, commit.id)
+    else:
+        repo.refs.add_if_new(ref_name, commit.id)
 
-        print commit.id
+    print commit.id
