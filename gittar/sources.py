@@ -33,12 +33,16 @@ class FilesystemSource(Source):
     scheme = 'file'
 
     def __init__(self, path):
-        self.path = os.path.expanduser(path)
+        self.path = os.path.abspath(os.path.expanduser(path))
 
-    def get_blob(self, relpath):
-        abspath = os.path.abspath(relpath)
-        if relpath == self.path:
-            relpath = os.path.basename(relpath)
+        if os.path.isdir(self.path):
+            self.isdir = True
+
+    def get_blob(self, path):
+        if not self.isdir:
+            abspath = self.abspath
+        else:
+            abspath = os.path.join(os.path.dirname(self.path), path)
 
         if os.path.isfile(abspath):
             with open(abspath, 'rb') as f:
@@ -53,13 +57,13 @@ class FilesystemSource(Source):
             raise RuntimeError('Can\'t handle %s' % abspath)
 
     def __iter__(self):
-        if os.path.isdir(self.path):
+        if self.isdir:
             for dirpath, dns, fns in os.walk(self.path):
                 for fn in fns:
                     jpath = os.path.join(dirpath, fn)
-                    yield os.path.relpath(jpath, self.path)
+                    yield os.path.relpath(jpath, os.path.dirname(self.path))
         else:
-            yield self.path
+            yield os.path.basename(self.path)
 
 
 class ZipSource(Source):

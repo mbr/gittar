@@ -66,8 +66,9 @@ path) inside the commit.
 
 Assuming ``/some/directory`` is a directory, all files in it will be added
 recursively, their names inside the commit being their relative paths to
-``/some/directory``. Example: A file ``/some/directory/foo/bar`` will be added
-as ``foo/bar`` to the commit.
+``/some/directory`` and the directory name. Example: A file
+``/some/directory/foo/bar`` will be added as ``directoryfoo/bar`` to the
+commit.
 
 The zip-scheme
 ~~~~~~~~~~~~~~
