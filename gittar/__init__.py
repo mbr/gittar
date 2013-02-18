@@ -9,6 +9,7 @@ except ImportError:
     import StringIO
 
 from collections import OrderedDict
+import fnmatch
 import time
 from urlparse import urlparse
 import re
@@ -133,12 +134,31 @@ def main():
     for orig, s_args, s_kwargs in args.sources:
         scheme = s_args.pop(0)
 
+        # prepare include/exclude expressions
+        include_exprs = [fnmatch.translate(pattern)
+                         for pattern in s_kwargs.pop('include', [])]
+        include_exprs.extend(s_kwargs.pop('rinclude', []))
+        exclude_exprs = [fnmatch.translate(pattern)
+                         for pattern in s_kwargs.pop('exclude', [])]
+        exclude_exprs.extend(s_kwargs.pop('rexclude', []))
+
+        includes = map(re.compile, include_exprs)
+        excludes = map(re.compile, exclude_exprs)
+
         src = SOURCES[scheme](*s_args, **s_kwargs)
         sys.stderr.write(orig)
         sys.stderr.write('\n')
 
         root = OrderedDict()
         for path in src:
+            # if includes are specified and none matches, skip
+            if includes and not filter(lambda exp: exp.match(path), includes):
+                continue
+
+            # vice-versa for excludes
+            if excludes and filter(lambda exp: exp.match(path), excludes):
+                continue
+
             # add the blob
             mode, blob = src.get_blob(path)
             repo.object_store.add_object(blob)
