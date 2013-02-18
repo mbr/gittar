@@ -35,35 +35,31 @@ class FilesystemSource(Source):
     def __init__(self, path):
         self.path = os.path.expanduser(path)
 
-    def _handle_file(self, relpath, abspath):
+    def get_blob(self, relpath):
+        abspath = os.path.abspath(relpath)
+        if relpath == self.path:
+            relpath = os.path.basename(relpath)
+
         if os.path.isfile(abspath):
             with open(abspath, 'rb') as f:
                 # tutorial says we can use from_file here - possibly wrong?
-                return (relpath,
-                       MODE_XFILE if _is_executable(abspath) else MODE_RFILE,
+                return (MODE_XFILE if _is_executable(abspath) else MODE_RFILE,
                        Blob.from_string(f.read()))
         elif os.path.islink(abspath):
             target = os.readlink(abspath)
-            return (relpath,
-                   MODE_LNK,
+            return (MODE_LNK,
                    Blob.from_string(target))
         else:
             raise RuntimeError('Can\'t handle %s' % abspath)
 
     def __iter__(self):
-        path = self.path
-
-        if os.path.isdir(path):
-            for dirpath, dns, fns in os.walk(path):
+        if os.path.isdir(self.path):
+            for dirpath, dns, fns in os.walk(self.path):
                 for fn in fns:
                     jpath = os.path.join(dirpath, fn)
-                    relpath = os.path.relpath(jpath, path)
-                    abspath = os.path.abspath(jpath)
-                    yield self._handle_file(relpath, abspath)
+                    yield os.path.relpath(jpath, self.path)
         else:
-            yield self._handle_file(
-                os.path.basename(path), os.path.abspath(path)
-            )
+            yield self.path
 
 
 class ZipSource(Source):

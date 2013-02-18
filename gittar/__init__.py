@@ -138,8 +138,9 @@ def main():
         sys.stderr.write('\n')
 
         root = OrderedDict()
-        for path, mode, blob in src:
+        for path in src:
             # add the blob
+            mode, blob = src.get_blob(path)
             repo.object_store.add_object(blob)
 
             # tree entry
