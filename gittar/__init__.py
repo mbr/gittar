@@ -64,6 +64,7 @@ def gittar_url(s):
             else:
                 args.append(cur.getvalue())
             cur = StringIO()
+            key = None
         else:
             cur.write(c)
         i += 1
