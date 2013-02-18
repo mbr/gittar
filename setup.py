@@ -12,7 +12,7 @@ def read(fname):
 
 setup(
     name='gittar',
-    version='0.3dev',
+    version='0.2.1',
     description='The inverse of git archive. Adds a new commit from an archive'
                 'or the filesystem.',
     long_description=read('README.rst'),
