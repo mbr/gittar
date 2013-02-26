@@ -146,33 +146,35 @@ def main():
         includes = map(re.compile, include_exprs)
         excludes = map(re.compile, exclude_exprs)
 
-        src = SOURCES[scheme](*s_args, **s_kwargs)
+        srcs = SOURCES[scheme].create(*s_args, **s_kwargs)
         sys.stderr.write(orig)
         sys.stderr.write('\n')
 
-        for path in src:
-            # if includes are specified and none matches, skip
-            if includes and not filter(lambda exp: exp.match(path), includes):
-                continue
+        for src in srcs:
+            for path in src:
+                # if includes are specified and none matches, skip
+                if includes and not filter(lambda exp: exp.match(path),
+                                           includes):
+                    continue
 
-            # vice-versa for excludes
-            if excludes and filter(lambda exp: exp.match(path), excludes):
-                continue
+                # vice-versa for excludes
+                if excludes and filter(lambda exp: exp.match(path), excludes):
+                    continue
 
-            # add the blob
-            mode, blob = src.get_blob(path)
-            repo.object_store.add_object(blob)
+                # add the blob
+                mode, blob = src.get_blob(path)
+                repo.object_store.add_object(blob)
 
-            # tree entry
-            node = root
-            components = path.split('/')
-            for c in components[:-1]:
-                node = node.setdefault(c, OrderedDict())
+                # tree entry
+                node = root
+                components = path.split('/')
+                for c in components[:-1]:
+                    node = node.setdefault(c, OrderedDict())
 
-            node[components[-1]] = (mode, blob.id)
+                node[components[-1]] = (mode, blob.id)
 
-            sys.stderr.write(path)
-            sys.stderr.write('\n')
+                sys.stderr.write(path)
+                sys.stderr.write('\n')
 
         sys.stderr.write('\n')
 
