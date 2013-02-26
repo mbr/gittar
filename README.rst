@@ -65,10 +65,19 @@ This will add ``myfile`` to the commit with the path ``myfile``. The file
 path) inside the commit.
 
 Assuming ``/some/directory`` is a directory, all files in it will be added
-recursively, their names inside the commit being their relative paths to
-``/some/directory`` and the directory name. Example: A file
+recursively, without the ``/some/`` path prefix. Example: A file
 ``/some/directory/foo/bar`` will be added as ``directory/foo/bar`` to the
 commit.
+
+Similarities and differences to tar
+"""""""""""""""""""""""""""""""""""
+
+Specifying ``file:`` targets is similiar to tar, with one key differences:
+Instead of adding absolute paths, ``gittar`` will strip any path information
+(but keep subdirectory trees intact).
+
+Specifically, ``gittar`` will never change pathnames depending on your current
+working directory.
 
 Wildcards and directories as root
 """""""""""""""""""""""""""""""""
@@ -92,13 +101,6 @@ files in a directory ``/foo`` and not having them as subdirectories, you need
 to use the following command::
 
   gittar 'file:/foo/*' 'file:/foo/.*'
-
-Similarities and differences to tar
-"""""""""""""""""""""""""""""""""""
-
-Specifying ``file:`` targets is similiar to tar, with one key differences:
-Instead of adding absolute paths, ``gittar`` will strip any path information
-(but keep subdirectory trees intact).
 
 The zip-scheme
 ~~~~~~~~~~~~~~
