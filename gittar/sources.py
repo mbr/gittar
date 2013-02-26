@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from glob import glob
 import os
 import stat
 import tarfile
@@ -26,7 +27,9 @@ def _executable_bits(mode):
 
 
 class Source(object):
-    pass
+    @classmethod
+    def create(cls, *args, **kwargs):
+        yield cls(*args, **kwargs)
 
 
 class FilesystemSource(Source):
@@ -34,7 +37,6 @@ class FilesystemSource(Source):
 
     def __init__(self, path):
         self.path = os.path.abspath(os.path.expanduser(path))
-
         self.isdir = os.path.isdir(self.path)
 
     def get_blob(self, path):
@@ -63,6 +65,11 @@ class FilesystemSource(Source):
                     yield os.path.relpath(jpath, os.path.dirname(self.path))
         else:
             yield os.path.basename(self.path)
+
+    @classmethod
+    def create(cls, path):
+        for path in glob(os.path.expanduser(path)):
+            yield cls(path)
 
 
 class ZipSource(Source):
