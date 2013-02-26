@@ -67,8 +67,38 @@ path) inside the commit.
 Assuming ``/some/directory`` is a directory, all files in it will be added
 recursively, their names inside the commit being their relative paths to
 ``/some/directory`` and the directory name. Example: A file
-``/some/directory/foo/bar`` will be added as ``directoryfoo/bar`` to the
+``/some/directory/foo/bar`` will be added as ``directory/foo/bar`` to the
 commit.
+
+Wildcards and directories as root
+"""""""""""""""""""""""""""""""""
+
+Since directories are added recursively and always kept in the relative path,
+it's not possible this way to add a directory as the root. One solution is to
+use wildcards (note the quotes to prevent wildcard expansion by the shell)::
+
+  gittar 'file:/some/directory/*'
+
+If there are three files in ``/some/directory`` named ``a_file``, ``a_dir`` and
+``foo``, the command above will be logically expanded to::
+
+  gittar 'file:/some/directory/a_file' 'file:/some/directory/a_dir' 'file:/some/directory/foo'
+
+This will result in ``a_file`` being added to the root of the commit.
+
+Note that wildcard-expansion is done UNIX-style using the ``glob`` module.
+Files starting with a dot (``.``) are not included using ``*``. To add all
+files in a directory ``/foo`` and not having them as subdirectories, you need
+to use the following command::
+
+  gittar 'file:/foo/*' 'file:/foo/.*'
+
+Similarities and differences to tar
+"""""""""""""""""""""""""""""""""""
+
+Specifying ``file:`` targets is similiar to tar, with one key differences:
+Instead of adding absolute paths, ``gittar`` will strip any path information
+(but keep subdirectory trees intact).
 
 The zip-scheme
 ~~~~~~~~~~~~~~
