@@ -132,13 +132,13 @@ Inclusion/Exclusion
 The ``include`` and ``exclude`` options can be used to specify which files
 should be included in the commit. Example::
 
-  gittar tar:myarchive.tar:include=*.css:include=output/*.html:exclude=*~
+  gittar tar:myarchive.tar:include=*.css:include=output/*.html:exclude=~*
 
 Note: You will most likely have to enter this with backslash-escaped asterisks
 (``\*``) on your shell.
 
 The command above will include all CSS files and all HTML files from the output
-folder, provided they do not end in a tilde``~``.
+folder, provided they do not start with a tilde``~``.
 
 If no include option is given all not-excluded files are included.
 
