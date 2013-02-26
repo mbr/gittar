@@ -29,6 +29,11 @@ def _executable_bits(mode):
 class Source(object):
     @classmethod
     def create(cls, *args, **kwargs):
+        """Factory method for creating a source.
+
+        This allows creating more than once source from a single URI.
+
+        :return: A generator of sources."""
         yield cls(*args, **kwargs)
 
 
