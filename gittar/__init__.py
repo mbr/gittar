@@ -188,8 +188,8 @@ def main():
     tree = store_tree(root)
 
     def get_user():
-        return '%s <%s>' % (config.get('user', 'name'),
-                            config.get('user', 'email'))
+        return '%s <%s>' % (config.get(b'user', b'name'),
+                            config.get(b'user', b'email'))
 
     commit = Commit()
 
