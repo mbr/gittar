@@ -26,5 +26,9 @@ setup(
         'console_scripts': [
             'gittar = gittar:main',
         ],
-    }
+    },
+    classifiers=[
+        'Programming Language :: Python :: 2',
+        'Programming Language :: Python :: 3',
+    ]
 )
