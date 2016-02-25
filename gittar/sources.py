@@ -54,11 +54,11 @@ class FilesystemSource(Source):
             with open(abspath, 'rb') as f:
                 # tutorial says we can use from_file here - possibly wrong?
                 return (MODE_XFILE if _is_executable(abspath) else MODE_RFILE,
-                       Blob.from_string(f.read()))
+                        Blob.from_string(f.read()))
         elif os.path.islink(abspath):
             target = os.readlink(abspath)
             return (MODE_LNK,
-                   Blob.from_string(target))
+                    Blob.from_string(target))
         else:
             raise RuntimeError('Can\'t handle %s' % abspath)
 
@@ -110,8 +110,7 @@ class TarSource(Source):
         if info.isfile() or info.islnk():
             target = info.name if info.isfile()\
                                else info.linkname
-            mode = MODE_XFILE if _executable_bits(info.mode)\
-                                  else MODE_RFILE
+            mode = MODE_XFILE if _executable_bits(info.mode) else MODE_RFILE
             buf = self.archive.extractfile(target).read()
         elif info.issym():
             mode = MODE_LNK
@@ -124,5 +123,5 @@ class TarSource(Source):
         return mode, Blob.from_string(buf)
 
 
-SOURCES = {cls.scheme : cls for cls in locals().values()
+SOURCES = {cls.scheme: cls for cls in locals().values()
            if hasattr(cls, 'scheme')}

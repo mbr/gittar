@@ -11,7 +11,6 @@ except ImportError:
 from collections import OrderedDict
 import fnmatch
 import time
-from urlparse import urlparse
 import re
 import sys
 
@@ -24,6 +23,7 @@ from dulwich.objects import Tree, Commit, parse_timezone
 from sources import SOURCES, MODE_TREE
 
 VALID_KEY_RE = re.compile('^[a-zA-Z_][a-zA-Z0-9_]*$')
+
 
 def gittar_url(s):
     args = []
@@ -38,7 +38,7 @@ def gittar_url(s):
         c = s[i] if i < len(s) else None
 
         if escaped:
-            if c == None:
+            if c is None:
                 raise argparse.ArgumentTypeError('Trailing \\')
             cur.write(c)
             escaped = False
@@ -47,7 +47,7 @@ def gittar_url(s):
             i += 1
             continue
         elif c == '=':
-            if key != None:
+            if key is not None:
                 raise argparse.ArgumentTypeError(
                     'Cannot have two \'=\' inside single field.'
                 )
@@ -55,7 +55,7 @@ def gittar_url(s):
                 key = cur.getvalue()
                 cur = StringIO()
         elif c in (':', None):
-            if key != None:
+            if key is not None:
                 if not VALID_KEY_RE.match(key):
                     raise argparse.ArgumentTypeError(
                         'Bad variable name: %r' % key
@@ -75,8 +75,6 @@ def gittar_url(s):
 
 def get_local_tz_offset(ltz, now):
     offset = ltz.utcoffset(now)
-    seconds = offset.seconds
-    sign = '-' if seconds < 0 else '+'
     offset = abs(offset)
 
     return offset.days * 24 * 60 * 60 + offset.seconds, False
