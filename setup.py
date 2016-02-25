@@ -21,7 +21,7 @@ setup(
     url='http://github.com/mbr/gittar',
     license='MIT',
     packages=find_packages(exclude=['test']),
-    install_requires=['dulwich', 'python-dateutil'],
+    install_requires=['dulwich', 'python-dateutil', 'six'],
     entry_points={
         'console_scripts': [
             'gittar = gittar:main',

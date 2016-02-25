@@ -1,26 +1,22 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from __future__ import print_function
+
 import argparse
-
-try:
-    from cStringIO import StringIO
-except ImportError:
-    import StringIO
-
 from collections import OrderedDict
+from datetime import datetime
 import fnmatch
 import time
 import re
+from six import StringIO
 import sys
 
 from dateutil.tz import tzlocal
-from datetime import datetime
-
 from dulwich.repo import Repo
 from dulwich.objects import Tree, Commit, parse_timezone
 
-from sources import SOURCES, MODE_TREE
+from .sources import SOURCES, MODE_TREE
 
 VALID_KEY_RE = re.compile('^[a-zA-Z_][a-zA-Z0-9_]*$')
 
@@ -221,4 +217,4 @@ def main():
     else:
         repo.refs.add_if_new(ref_name, commit.id)
 
-    print commit.id
+    print(commit.id)

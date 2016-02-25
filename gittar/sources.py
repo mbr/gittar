@@ -14,7 +14,7 @@ MODE_RFILE = stat.S_IFREG | \
              stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IROTH
 MODE_XFILE = MODE_RFILE | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH
 MODE_LNK   = stat.S_IFLNK
-MODE_TREE  = 0040000
+MODE_TREE  = 0o0040000
 
 
 def _is_executable(path):
