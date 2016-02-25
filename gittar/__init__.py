@@ -121,7 +121,7 @@ def main():
     # open repo
     repo = Repo(args.repo)
     config = repo.get_config_stack()
-    ref_name = 'refs/heads/%s' % args.branch
+    ref_name = b'refs/heads/' + args.branch.encode('ascii')
 
     old_head = repo.refs[ref_name] if ref_name in repo.refs else None
 
@@ -137,10 +137,10 @@ def main():
                          for pattern in s_kwargs.pop('exclude', [])]
         exclude_exprs.extend(s_kwargs.pop('rexclude', []))
 
-        includes = map(re.compile, include_exprs)
-        excludes = map(re.compile, exclude_exprs)
+        includes = list(map(re.compile, include_exprs))
+        excludes = list(map(re.compile, exclude_exprs))
 
-        srcs = SOURCES[scheme].create(*s_args, **s_kwargs)
+        srcs = list(SOURCES[scheme].create(*s_args, **s_kwargs))
         sys.stderr.write(orig)
         sys.stderr.write('\n')
 
@@ -178,9 +178,10 @@ def main():
 
         for name in node:
             if isinstance(node[name], dict):
-                tree.add(name, MODE_TREE, store_tree(node[name]).id)
+                tree.add(name.encode(args.encoding),
+                         MODE_TREE, store_tree(node[name]).id)
             else:
-                tree.add(name, *node[name])
+                tree.add(name.encode(args.encoding), *node[name])
 
         repo.object_store.add_object(tree)
         return tree
@@ -188,8 +189,10 @@ def main():
     tree = store_tree(root)
 
     def get_user():
-        return '%s <%s>' % (config.get(b'user', b'name'),
-                            config.get(b'user', b'email'))
+        name = config.get(b'user', b'name').decode('utf8')
+        email = config.get(b'user', b'email').decode('utf8')
+
+        return '{} <{}>'.format(name, email)
 
     commit = Commit()
 
@@ -197,8 +200,8 @@ def main():
         commit.parents = [old_head]
 
     commit.tree = tree.id
-    commit.author = args.author or get_user()
-    commit.committer = args.committer or get_user()
+    commit.author = (args.author or get_user()).encode(args.encoding)
+    commit.committer = (args.committer or get_user()).encode(args.encoding)
 
     commit.commit_time = args.commit_time
     commit.author_time = args.author_time
@@ -206,8 +209,8 @@ def main():
     commit.commit_timezone = args.commit_timezone[0]
     commit.author_timezone = args.author_timezone[0]
 
-    commit.encoding = args.encoding
-    commit.message = args.message
+    commit.encoding = args.encoding.encode('ascii')
+    commit.message = args.message.encode(args.encoding)
 
     repo.object_store.add_object(commit)
 
